@@ -225,5 +225,6 @@ timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
 
 if verbose: print(f'Writing to file graphene_oxide_{timestamp}.vasp')
 
-new_gr_ox.write(f'graphene_oxide_{timestamp}.vasp')
+kwargs = {'vasp5': True}
+new_gr_ox.write(f'graphene_oxide_{timestamp}.vasp',**kwargs)
 
