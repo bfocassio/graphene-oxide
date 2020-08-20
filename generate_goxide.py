@@ -11,6 +11,32 @@ import matplotlib.pyplot as plt
 import datetime
 import sys
 
+def _help():
+    print("""
+    Usage: graphene_oxide.py [options]
+
+    [options] : option1=value1 option2=value2 ...
+
+    Options:
+
+    -h\tprint this help message
+
+    border_type\t a for armchair or z for zigzag, default: a
+    cell\t simulation cell format, ortho or something else (only relevant for zigzag border type), default: ortho
+    nx,ny\t integer number of repetitions along x and y directions, default: 5
+    vacuum\t size of vacuum layer in angst, default: 10
+    frac_OH\t % of OH functions, default: 12.5
+    frac_COC\t % of COC functions, default: 12.5
+    allow_NN\t allow NN oxidation. This is respected until reaching an oxidation threshold, then it is set to True, default: False
+    verbose\t code verbose, default: True
+    show_atoms\t whether or not to show atoms object before and after oxidation using ASE's visualization GUI, default: False
+    bond_CC\t C-C bond length, default: 1.42
+    bond_COH\t C-OH bond length, default: 1.48
+    bond_OH\t O-H bond length, default: 0.98
+    bond_COC\t height of oxigen from C-C bond, default: 0.22
+    """)
+    exit()
+
 print ('The code was called with the following command-line options\n '+'  '.join(sys.argv)+'\n')
 
 border_type = 'a'
@@ -18,22 +44,18 @@ cell = 'ortho'
 flake = False
 nx,ny = 5,5
 vacuum = 20
-
 frac_OH = 12.5
 frac_COC = 12.5
-
 allow_NN = False
-
 verbose=True
 show_atoms=False
-
 bond_CC = 1.42
 bond_COH = 1.48
 bond_OH = 0.98
 bond_COC = 1.22
 
 for arg in sys.argv[1:]:
-    if arg == '-h': pass
+    if arg == '-h': _help()
     else:
         arg_key = arg.split('=')[0]
         arg_val = ''.join(arg.split('=')[1:])
@@ -82,6 +104,8 @@ else:
     xyz = xyz[:,[0,2,1]]
     gr = Atoms(gr.symbols,positions=xyz,cell=[[gr.cell[0,0],0.,0.],[0.,gr.cell[2,2],0.],[0.,0.,gr.cell[1,1]]],pbc=[True,True,False])
 natoms = gr.get_global_number_of_atoms()
+
+gr.center(axis=2)
 
 if show_atoms: view(gr)
 
