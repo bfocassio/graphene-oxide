@@ -10,73 +10,51 @@ from ase.visualize import view
 import matplotlib.pyplot as plt
 import datetime
 import sys
+import argparse
 
-def _help():
-    print("""
-    Usage: graphene_oxide.py [options]
+parser = argparse.ArgumentParser(description='Script to generate and oxidize graphene sheet/nanoribbon')
+parser.add_argument('-b','--border_type', type=str.lower, choices=['a','z'], help='border type, a/A for armchair or z/Z for zigzag, default: a', default='a')
+parser.add_argument('-c','--cell', type=str.lower, help='simulation cell format, ortho or something else (only relevant for zigzag border type), default: ortho', default='ortho')
+parser.add_argument('-flk','--flake', type=bool, help='generate flake or infinite structure with PBC, default: False', default=False, choices=[True,False])
+parser.add_argument('-sat','--saturated_edge', type=bool, help='If flake is True, choose to saturate edge or not with hydrogen, default: True', default=True, choices=[True,False])
+parser.add_argument('-nx','--nx', type=int, help='integer number of repetitions along x direction, default: 5', default=5)
+parser.add_argument('-ny','--ny', type=int, help='integer number of repetitions along y direction, default: 5', default=5)
+parser.add_argument('-vac','--vacuum', type=float, help='size of vacuum layer in Angstrom, default: 20', default=20)
+parser.add_argument('-NN','--allow_NN', type=bool, help='allow NN oxidation. This is respected until reaching an oxidation threshold, then it is set to True, default: False', default=False, choices=[True,False])
+parser.add_argument('-v','--verbose', type=bool, help='code verbose, default: True', default=True, choices=[True,False])
+parser.add_argument('-show','--show_atoms', type=bool, help='whether or not to show atoms object before and after oxidation using ASE\'s visualization GUI, default: False', default=False, choices=[True,False])
+parser.add_argument('-bCC','--bond_CC', type=float, help='C-C bond length, default: 1.42', default=1.42)
+parser.add_argument('-bCOH','--bond_COH', type=float, help='C-OH bond length, default: 1.48', default=1.48)
+parser.add_argument('-bOH','--bond_OH', type=float, help='O-H bond length, default: 0.98', default=0.98)
+parser.add_argument('-bCOC','--bond_COC', type=float, help='height of oxigen from C-C bond, default: 1.22', default=1.22)
+parser.add_argument('-OH','--OH', type=float, help='percentage of hydroxyl functions, default: 12.5', default=12.5)
+parser.add_argument('-COC','--COC', type=float, help='percentage of epoxy functions, default: 12.5', default=12.5)
+parser.add_argument('-ket','--ketone', type=float, help='percentage of ketone functions, default: 0.0', default=0.0)
+parser.add_argument('-ketH','--ketone_H', type=float, help='percentage of hydrogenated ketone functions, default: 0.0', default=0.0)
 
-    [options] : option1=value1 option2=value2 ...
+# Read arguments from the command line
+args = parser.parse_args()
 
-    Options:
+border_type = args.border_type
+cell = args.cell
+flake = args.flake
+saturated_edge = args.saturated_edge
+nx = args.nx
+ny = args.ny
+vacuum = args.vacuum
+allow_NN = args.allow_NN
+verbose = args.verbose
+show_atoms = args.show_atoms
+bond_CC = args.bond_CC
+bond_COH = args.bond_COH
+bond_OH = args.bond_OH
+bond_COC = args.bond_COC
 
-    -h\tprint this help message
+frac_OH = args.OH
+frac_COC = args.COC
+frac_ket = args.ketone
+frac_ketH = args.ketone_H
 
-    border_type\t a for armchair or z for zigzag, default: a
-    cell\t simulation cell format, ortho or something else (only relevant for zigzag border type), default: ortho
-    nx,ny\t integer number of repetitions along x and y directions, default: 5
-    vacuum\t size of vacuum layer in angst, default: 10
-    frac_OH\t % of OH functions, default: 12.5
-    frac_COC\t % of COC functions, default: 12.5
-    allow_NN\t allow NN oxidation. This is respected until reaching an oxidation threshold, then it is set to True, default: False
-    verbose\t code verbose, default: True
-    show_atoms\t whether or not to show atoms object before and after oxidation using ASE's visualization GUI, default: False
-    bond_CC\t C-C bond length, default: 1.42
-    bond_COH\t C-OH bond length, default: 1.48
-    bond_OH\t O-H bond length, default: 0.98
-    bond_COC\t height of oxigen from C-C bond, default: 0.22
-    """)
-    exit()
-
-print ('The code was called with the following command-line options\n '+'  '.join(sys.argv)+'\n')
-
-border_type = 'a'
-cell = 'ortho'
-flake = False
-nx,ny = 5,5
-vacuum = 20
-frac_OH = 12.5
-frac_COC = 12.5
-allow_NN = False
-verbose=True
-show_atoms=False
-bond_CC = 1.42
-bond_COH = 1.48
-bond_OH = 0.98
-bond_COC = 1.22
-
-for arg in sys.argv[1:]:
-    if arg == '-h': _help()
-    else:
-        arg_key = arg.split('=')[0]
-        arg_val = ''.join(arg.split('=')[1:])
-        
-        if arg_key == 'border_type': border_type = arg_val.lower()
-        elif arg_key == 'cell': cell = arg_val.lower()
-        elif arg_key == 'flake': flake = bool(arg_val.capitalize())
-        elif arg_key == 'nx': nx = int(arg_val)
-        elif arg_key == 'ny': ny = int(arg_val)
-        elif arg_key == 'vacuum': vacuum = float(arg_val) 
-        elif arg_key == 'frac_OH': frac_OH = float(arg_val)
-        elif arg_key == 'frac_COC': frac_COC = float(arg_val) 
-        elif arg_key == 'allow_NN': allow_NN = bool(arg_val.capitalize())
-        elif arg_key == 'verbose': verbose = bool(arg_val.capitalize())
-        elif arg_key == 'show_atoms': show_atoms = bool(arg_val.capitalize())
-        elif arg_key == 'bond_CC': bond_CC = float(arg_val)
-        elif arg_key == 'bond_COH': bond_COH = float(arg_val) 
-        elif arg_key == 'bond_OH': bond_OH = float(arg_val)
-        elif arg_key == 'bond_COC': bond_COC = float(arg_val)
-
-border_type = border_type.lower()[0]
 fraction = {'OH': frac_OH,'COC': frac_COC}
 
 # ### 1. Build graphene sheet
