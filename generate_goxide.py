@@ -28,9 +28,10 @@ parser.add_argument('-NN','--allow_NN', type=bool, help='allow NN oxidation. Thi
 parser.add_argument('-v','--verbose', type=bool, help='code verbose, default: True', default=True, choices=[True,False])
 parser.add_argument('-show','--show_atoms', type=bool, help='whether or not to show atoms object before and after oxidation using ASE\'s visualization GUI, default: False', default=False, choices=[True,False])
 parser.add_argument('-bCC','--bond_CC', type=float, help='C-C bond length, default: 1.42', default=1.42)
-parser.add_argument('-bCOH','--bond_COH', type=float, help='C-OH bond length, default: 1.48', default=1.48)
+parser.add_argument('-bCOH','--bond_COH', type=float, help='C-OH bond length, default: 1.48', default=1.41)
 parser.add_argument('-bOH','--bond_OH', type=float, help='O-H bond length, default: 0.98', default=0.98)
-parser.add_argument('-bCOC','--bond_COC', type=float, help='height of oxigen from C-C bond, default: 1.22', default=1.22)
+parser.add_argument('-bCOC','--bond_COC', type=float, help='height of oxigen from C-C bond, default: 1.275', default=1.275)
+parser.add_argument('-bket','--bond_ketone', type=float, help='height of oxigen from C atom in ketone function, default: 1.22', default=1.22)
 parser.add_argument('-OH','--OH', type=float, help='percentage of hydroxyl functions, default: 12.5', default=12.5)
 parser.add_argument('-COC','--COC', type=float, help='percentage of epoxy functions, default: 12.5', default=12.5)
 parser.add_argument('-ket','--ketone', type=float, help='percentage of ketone functions, default: 0.0', default=0.0)
@@ -56,13 +57,14 @@ bond_CC = args.bond_CC
 bond_COH = args.bond_COH
 bond_OH = args.bond_OH
 bond_COC = args.bond_COC
+bond_ketone = args.bond_ketone
 
 frac_OH = args.OH
 frac_COC = args.COC
 frac_ket = args.ketone
 frac_ketH = args.ketone_H
 
-fraction = {'OH': frac_OH,'COC': frac_COC}
+fraction = {'OH': frac_OH,'COC': frac_COC, 'ket': frac_ket, 'ket+H': frac_ketH}
 
 # ### 1. Build graphene sheet
 
@@ -327,13 +329,36 @@ for group in function_noxygens.keys():
                     trials = 0
                     
                 else: trials +=1
-        
+
+            elif group == 'ket':
+                ase.build.add_adsorbate(gr_ox,adsorbate='O',height=side * bond_ketone, position=ox_xyz[atom][:2])
+                added += 1
+
+                oxy_carbons.append(atom)
+                not_allowed.append(atom)
+                if not allow_NN:
+                    for nn in NN_dict[atom]:
+                        not_allowed.append(nn)
+                trials = 0
+
+            elif group == 'ket+H':
+                ase.build.add_adsorbate(gr_ox,adsorbate='O',height=side * bond_ketone, position=ox_xyz[atom][:2])
+                ase.build.add_adsorbate(gr_ox,adsorbate='H',height=side * (bond_ketone+bond_OH), position=ox_xyz[atom][:2])
+                added += 1
+
+                oxy_carbons.append(atom)
+                not_allowed.append(atom)
+                if not allow_NN:
+                    for nn in NN_dict[atom]:
+                        not_allowed.append(nn)
+                trials = 0
+
         else:
             trials += 1
             if trials == max_trials_soft:
                 not_allowed = oxy_carbons
     
-    if verbose: print(f'added {added:.0f} functions {group}: {added/natoms * 100:.2f} %')        
+    if verbose and added != 0: print(f'added {added:.0f} functions {group}: {added/natoms * 100:.2f} %')        
     if show_atoms: view(gr_ox)
 
 if verbose: print(f'Final number of atoms: {gr_ox.get_global_number_of_atoms()}')
