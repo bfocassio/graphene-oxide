@@ -9,47 +9,75 @@ from ase.neighborlist import neighbor_list
 from ase.visualize import view
 import matplotlib.pyplot as plt
 import datetime
+import sys
 
-border_type = 'a' # z or a (zigzag or armchair)
-border_type = border_type.lower()[0]
+print ('The code was called with the following command-line options\n '+'  '.join(sys.argv)+'\n')
+
+border_type = 'a'
 cell = 'ortho'
 flake = False
-n,m = 7,10
-vacuum = 45
-C_C = 1.42
+nx,ny = 5,5
+vacuum = 20
 
-fraction = {'OH': 12.5,'COC': 12.5}
+frac_OH = 12.5
+frac_COC = 12.5
+
 allow_NN = False
 
 verbose=True
 show_atoms=False
 
+bond_CC = 1.42
 bond_COH = 1.48
 bond_OH = 0.98
 bond_COC = 1.22
+
+for arg in sys.argv[1:]:
+    if arg == '-h': pass
+    else:
+        arg_key = arg.split('=')[0]
+        arg_val = ''.join(arg.split('=')[1:])
+        
+        if arg_key == 'border_type': border_type = arg_val.lower()
+        elif arg_key == 'cell': cell = arg_val.lower()
+        elif arg_key == 'flake': flake = bool(arg_val.capitalize())
+        elif arg_key == 'nx': nx = int(arg_val)
+        elif arg_key == 'ny': ny = int(arg_val)
+        elif arg_key == 'vacuum': vacuum = float(arg_val) 
+        elif arg_key == 'frac_OH': frac_OH = float(arg_val)
+        elif arg_key == 'frac_COC': frac_COC = float(arg_val) 
+        elif arg_key == 'allow_NN': allow_NN = bool(arg_val.capitalize())
+        elif arg_key == 'verbose': verbose = bool(arg_val.capitalize())
+        elif arg_key == 'show_atoms': show_atoms = bool(arg_val.capitalize())
+        elif arg_key == 'bond_CC': bond_CC = float(arg_val)
+        elif arg_key == 'bond_COH': bond_COH = float(arg_val) 
+        elif arg_key == 'bond_OH': bond_OH = float(arg_val)
+        elif arg_key == 'bond_COC': bond_COC = float(arg_val)
+
+border_type = border_type.lower()[0]
+fraction = {'OH': frac_OH,'COC': frac_COC}
 
 # ### 1. Build graphene sheet
 
 if verbose: print('Creating graphene geometry ...')
 print('Setting up graphene')
-print('\n')
 
 if border_type == 'z':
     if cell == 'ortho' and not flake:
-        gr = graphene_nanoribbon(n,m,type='zigzag',saturated=False,C_C=C_C,vacuum=vacuum,magnetic=False,sheet=True,main_element='C')
+        gr = graphene_nanoribbon(nx,ny,type='zigzag',saturated=False,C_C=bond_CC,vacuum=vacuum,magnetic=False,sheet=True,main_element='C')
         xyz = np.array(gr.get_positions())
         xyz = xyz[:,[0,2,1]]
         gr = Atoms(gr.symbols,positions=xyz,cell=[[gr.cell[0,0],0.,0.],[0.,gr.cell[2,2],0.],[0.,0.,gr.cell[1,1]]],pbc=[True,True,False])
     elif not flake:
-        a = C_C * (3 ** .5)
+        a = bond_CC * (3 ** .5)
         c = vacuum
         gr_uc = Atoms('C2',
                      scaled_positions=[[0, 0, 1/2],[2/3,1/3,1/2]],
                      cell=[[a,0,0], [- a * .5,a * 3 ** .5 / 2,0], [0,0,c]],
                      pbc=[1, 1, 0])
-        gr = gr_uc.repeat((n,m,1))
+        gr = gr_uc.repeat((nx,ny,1))
 else:
-    gr = graphene_nanoribbon(n,m,type='armchair',saturated=False,C_C=C_C,vacuum=vacuum,magnetic=False,sheet=True,main_element='C')
+    gr = graphene_nanoribbon(nx,ny,type='armchair',saturated=False,C_C=bond_CC,vacuum=vacuum,magnetic=False,sheet=True,main_element='C')
     xyz = np.array(gr.get_positions())
     xyz = xyz[:,[0,2,1]]
     gr = Atoms(gr.symbols,positions=xyz,cell=[[gr.cell[0,0],0.,0.],[0.,gr.cell[2,2],0.],[0.,0.,gr.cell[1,1]]],pbc=[True,True,False])
@@ -66,7 +94,7 @@ if verbose:
 
 if verbose: print('Building first neighbours list')
 
-NNlist = neighbor_list('j', a=gr, cutoff=C_C+.2, self_interaction=False)
+NNlist = neighbor_list('j', a=gr, cutoff=bond_CC+.2, self_interaction=False)
 
 NNlist = NNlist.reshape(natoms,-1).astype(int)
 
